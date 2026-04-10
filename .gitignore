@@ -1,0 +1,33 @@
+# Environment — NEVER commit real secrets
+.env
+
+# Local tooling
+.claude/
+
+# Go build artifacts
+backend/tmp/
+backend/server
+backend/taskflow
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.test
+coverage.out
+coverage.html
+
+# Stray shadcn output dir (created by shadcn when alias is misconfigured)
+frontend/@/

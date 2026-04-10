@@ -1,0 +1,13 @@
+# Don't copy test binaries or coverage files into the image
+*.test
+coverage.out
+
+# Local env — never bake into image
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Temp build artifacts
+tmp/

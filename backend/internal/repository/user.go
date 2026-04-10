@@ -1,0 +1,66 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/kunalchhabraiitb2024/taskflow/backend/internal/model"
+)
+
+var ErrNotFound = errors.New("not found")
+
+type UserRepository struct {
+	pool *pgxpool.Pool
+}
+
+func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
+	return &UserRepository{pool: pool}
+}
+
+func (r *UserRepository) Create(ctx context.Context, name, email, hashedPassword string) (*model.User, error) {
+	user := &model.User{Name: name, Email: email, Password: hashedPassword}
+	err := r.pool.QueryRow(ctx,
+		`INSERT INTO users (name, email, password)
+		 VALUES ($1, $2, $3)
+		 RETURNING id, created_at`,
+		name, email, hashedPassword,
+	).Scan(&user.ID, &user.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+	return user, nil
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+	user := &model.User{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, name, email, password, created_at FROM users WHERE email = $1`,
+		email,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user by email: %w", err)
+	}
+	return user, nil
+}
+
+func (r *UserRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+	user := &model.User{}
+	err := r.pool.QueryRow(ctx,
+		`SELECT id, name, email, created_at FROM users WHERE id = $1`,
+		id,
+	).Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+	return user, nil
+}

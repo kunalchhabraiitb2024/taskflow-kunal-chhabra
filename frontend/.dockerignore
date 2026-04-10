@@ -1,0 +1,11 @@
+# Large dirs not needed in build context
+node_modules/
+dist/
+
+# Env
+.env
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
