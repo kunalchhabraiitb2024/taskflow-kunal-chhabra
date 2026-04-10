@@ -239,26 +239,25 @@ go test ./tests/ -v -count=1
 
 ## 8. What You'd Do With More Time
 
-**Real-time updates (WebSocket / SSE)**: The most valuable missing feature. Task status changes would update across open tabs/clients without a page refresh. Would require a pub/sub layer (Redis or Postgres `LISTEN/NOTIFY`).
+**Already in this repo (was “future work”, now shipped):** Server-Sent Events for cross-tab task sync, **Board** view with `@dnd-kit` drag-between-columns, **projects** list pagination, and **stats** badges + `/projects/:id/stats`. See **§10** for how to try them.
 
-**Drag-and-drop kanban board**: Visual grouping of tasks by status column. Would use `@dnd-kit/core` on the frontend; no backend changes needed since status is just a PATCH call.
+**Harder real-time / scale:** The SSE broker is **in-process** (fine for one API replica). Multiple backend instances would need **Redis pub/sub**, **NATS**, or **Postgres `LISTEN/NOTIFY`** so every instance broadcasts task changes. **WebSockets** are an alternative if you need bidirectional messages or different client semantics.
 
-**Proper team management**: Currently, a project is "visible" to a user if they own it or have a task assigned. A real app needs explicit team membership (a `project_members` join table), role-based permissions (viewer/editor/owner), and an invite flow.
+**Kanban / tasks at scale:** **Ordering inside a column** is not persisted (no `sort_order` column). Adding one (plus migration and PATCH) would support “reorder within Done”. **Task pagination** on the project page still loads all tasks with the project (`GET /projects/:id`); for hundreds of tasks you’d paginate **`GET /projects/:id/tasks`** in the UI (infinite scroll or page controls).
 
-**Assignee name resolution**: Task responses return `assignee_id` (UUID) but not the assignee's name. The frontend would need to either (a) embed user details in task responses via a JOIN, or (b) maintain a user cache. The JOIN approach is cleaner.
+**Proper team management**: A project is visible if the user **owns** it or has a **task assigned**. Production apps usually add **`project_members`**, roles (viewer/editor/owner), and invites.
 
-**Refresh tokens**: The current 24h access token is silent — there's no graceful re-auth when it expires. A short-lived access token + long-lived refresh token stored in an `httpOnly` cookie is the production pattern.
+**Assignee name resolution**: Tasks return `assignee_id` only. Embed assignee display name via a SQL `JOIN` to `users`, or resolve in a small user cache on the client.
 
-**Rate limiting**: No rate limiting on auth endpoints. In production, brute-force protection on `/auth/login` is essential.
+**Auth & security**: **Refresh tokens** (short access + `httpOnly` refresh cookie) and **rate limiting** on `/auth/login` (and registration) for brute-force protection.
 
-**Pagination in the frontend**: The backend supports `?page=&limit=` but the frontend always fetches page 1 (default 20 items). Adding infinite scroll or page controls on the project detail view would complete the loop.
+**Polish**: Full **WCAG** / screen-reader pass; **loading skeletons** instead of spinners; replace browser **`confirm()`** deletes with accessible confirmation dialogs.
 
-**WCAG accessibility audit**: The UI uses shadcn/ui which ships with Radix primitives (keyboard-navigable, aria attributes), but a full screen-reader pass hasn't been done.
+**Data model nit**: Due dates are `DATE` in SQL but round-tripped through `time.Time` / ISO strings — a dedicated date-only type end-to-end would avoid timezone edge cases.
 
-**Shortcuts taken**:
-- `confirm()` dialogs for delete instead of a proper confirmation modal — quick but not great UX
-- Task due dates stored as Go `time.Time` — serialise with timezone info; the frontend strips to `YYYY-MM-DD`. A `date`-only type would be cleaner
-- No loading skeletons — spinner suffices for this scope but skeletons look more polished
+**Shortcuts still in place**:
+- `confirm()` for task/project delete — fast to ship, weaker UX than a modal
+- List/Board **List** view still uses the same delete pattern; Board cards use the grip handle for status moves only
 
 ---
 
